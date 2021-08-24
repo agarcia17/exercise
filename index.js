@@ -105,7 +105,7 @@ describe('Consumer', function () {
       const c = new Consumer(3000);
       const spy = sinon.spy(c, 'calculate');
       c.accept(4);
-      await sleep(1000);
+      await sleep(2000);
       c.accept(4);
       let mean = c.mean();
       assert.equal(mean, 4);
