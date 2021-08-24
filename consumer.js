@@ -1,9 +1,9 @@
 class Consumer {
   /**
    * @private
-   * @type {ExpiryItem[]}
+   * Holds references to pending timeouts
    */
-  store = [];
+  timeouts = {};
 
   /**
    * @private
@@ -13,15 +13,31 @@ class Consumer {
 
   /**
    * @private
-   * Garbage collector timer
+   * The running sum
    */
-  gc = null;
+  sum = 0;
 
   /**
    * @private
-   * Cached mean
-   * */
-  _mean = 0;
+   * The running length
+   */
+  length = 0;
+
+  /**
+   * @private
+   * Cached values
+   */
+  cache = {
+    sum: 0,
+    length: 0,
+    mean: 0,
+  };
+
+  /**
+   * @private
+   * Tracks if instance is disposed
+   */
+  isDisposed = false;
 
   /**
    *
@@ -37,10 +53,21 @@ class Consumer {
    * @param {number} number the integer to consume
    */
   accept(number) {
-    this.store.push(new ExpiryItem(number, this.ttl));
-    // clear mean cache as it is no longer valid
-    this._mean = null;
-    this.startGarbageCollector();
+    if (this.isDisposed) {
+      throw new Error('A disposed Consumer instance cannot accept any numbers');
+    }
+
+    this.sum += number;
+    this.length++;
+
+    const id = setTimeout(() => {
+      this.sum -= number;
+      this.length--;
+      clearTimeout(id);
+      delete this.timeouts[id];
+    }, this.ttl);
+
+    this.timeouts[id] = id;
   }
 
   /**
@@ -48,15 +75,24 @@ class Consumer {
    * @returns {number} the mean
    */
   mean() {
-    // return cached mean if we have one
-    if (this._mean != null) {
+    if (this.isDisposed) {
+      throw new Error('Cannot compute mean of a disposed Consumer instance.');
+    }
+
+    if (this.sum === this.cache.sum && this.length === this.cache.length) {
       /** cache hit **/
-      return this._mean;
+      return this.cache.mean;
     }
 
     /** cache miss **/
-    this._mean = this.calculate();
-    return this._mean;
+
+    this.cache = {
+      sum: this.sum,
+      length: this.length,
+      mean: this.calculate(),
+    };
+
+    return this.cache.mean;
   }
 
   /**
@@ -64,92 +100,28 @@ class Consumer {
    * Calculate the mean
    */
   calculate() {
-    // if no items in the store, return zero
-    if (this.store.length === 0) {
+    if (this.length === 0) {
       return 0;
     }
 
-    // if sum is zero, return zero
-    const sum = this.store.reduce((acc, item) => acc + item.value, 0);
-    if (sum === 0) {
+    if (this.sum === 0) {
       return 0;
     }
 
     // calculate mean
-    return sum / this.store.length;
-  }
-
-  /** @private */
-  executeGarbageCollector() {
-    const len = this.store.length;
-
-    // 'i' doubles as index and number of items that will be removed
-    let i = 0;
-
-    while (i < len) {
-      const item = this.store[i];
-
-      // break out of loop as the rest of the items are 'newer' (not expired)
-      if (!item.isExpired) {
-        break;
-      }
-
-      i++;
-    }
-
-    // do the actual removal of expired items in the store
-    if (i > 0) {
-      this.store.splice(0, i);
-      // clear mean cache as it is no longer valid
-      this._mean = null;
-    }
+    return this.sum / this.length;
   }
 
   /**
    * @private
-   * Starts the garbage collector if it's not yet running
+   * Clear all pending timeouts
    */
-  startGarbageCollector() {
-    // exit early if gc is already running
-    if (this.gc != null) {
+  dispose() {
+    if (this.isDisposed) {
       return;
     }
 
-    // execute garbage collector once
-    this.gc = setInterval(() => {
-      this.executeGarbageCollector();
-      this.stopGarbageCollector();
-    }, this.ttl);
-  }
-
-  /**
-   * Stop the garbage collector if it's running
-   */
-  stopGarbageCollector() {
-    // exit early if gc is not running
-    if (this.gc == null) {
-      return;
-    }
-
-    // clear gc timer
-    clearInterval(this.gc);
-    this.gc = null;
-  }
-}
-
-class ExpiryItem {
-  constructor(value, ttl) {
-    this.value = value;
-
-    /** @private */
-    this.expiry = new Date().getTime() + ttl;
-  }
-
-  /**
-   * Whether the item is expired
-   */
-  get isExpired() {
-    return new Date().getTime() > this.expiry;
+    Object.keys(this.timeouts).forEach(clearTimeout);
   }
 }
 

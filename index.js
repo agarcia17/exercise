@@ -13,17 +13,15 @@ describe('Consumer', function () {
   describe('#mean', function () {
     it('should return 0', function () {
       const c = new Consumer();
-      const mean = c.mean();
-      c.stopGarbageCollector();
-      assert.equal(mean, 0);
+      assert.equal(c.mean(), 0);
+      c.dispose();
     });
 
     it('should return 3', function () {
       const c = new Consumer();
       c.accept(3);
-      const mean = c.mean();
-      c.stopGarbageCollector();
-      assert.equal(mean, 3);
+      assert.equal(c.mean(), 3);
+      c.dispose();
     });
 
     it('should return 6', function () {
@@ -31,9 +29,8 @@ describe('Consumer', function () {
       c.accept(3);
       c.accept(6);
       c.accept(9);
-      const mean = c.mean();
-      c.stopGarbageCollector();
-      assert.equal(mean, 6);
+      assert.equal(c.mean(), 6);
+      c.dispose();
     });
 
     it('should return 10', async function () {
@@ -42,21 +39,18 @@ describe('Consumer', function () {
       c.accept(10);
       c.accept(10);
       await sleep(100);
-      const mean = c.mean();
-      c.stopGarbageCollector();
-      assert.equal(mean, 10);
+      assert.equal(c.mean(), 10);
+      c.dispose();
     });
 
     it('should return 15 then 0', async function () {
       const c = new Consumer(2000);
       c.accept(20);
       c.accept(10);
-      let mean = c.mean();
-      assert.equal(mean, 15);
+      assert.equal(c.mean(), 15);
       await sleep(3000);
-      mean = c.mean();
-      c.stopGarbageCollector();
-      assert.equal(mean, 0);
+      assert.equal(c.mean(), 0);
+      c.dispose();
     });
 
     it('should return 25 then 30', async function () {
@@ -64,12 +58,10 @@ describe('Consumer', function () {
       c.accept(30);
       await sleep(1000);
       c.accept(20);
-      let mean = c.mean();
-      assert.equal(mean, 25);
+      assert.equal(c.mean(), 25);
       await sleep(2500);
-      mean = c.mean();
-      c.stopGarbageCollector();
-      assert.equal(mean, 20);
+      assert.equal(c.mean(), 20);
+      c.dispose();
     });
 
     it('should return 2 with cache hit', async function () {
@@ -77,13 +69,11 @@ describe('Consumer', function () {
       const spy = sinon.spy(c, 'calculate');
       c.accept(2);
       await sleep(1000);
-      let mean = c.mean();
-      assert.equal(mean, 2);
+      assert.equal(c.mean(), 2);
       await sleep(1000);
-      mean = c.mean();
-      assert.equal(mean, 2);
+      assert.equal(c.mean(), 2);
       assert.equal(spy.callCount, 1);
-      c.stopGarbageCollector();
+      c.dispose();
     });
 
     it('should return 2 with cache miss', async function () {
@@ -91,14 +81,12 @@ describe('Consumer', function () {
       const spy = sinon.spy(c, 'calculate');
       c.accept(2);
       await sleep(1000);
-      let mean = c.mean();
-      assert.equal(mean, 2);
+      assert.equal(c.mean(), 2);
       c.accept(2);
       await sleep(1000);
-      mean = c.mean();
-      assert.equal(mean, 2);
+      assert.equal(c.mean(), 2);
       assert.equal(spy.callCount, 2);
-      c.stopGarbageCollector();
+      c.dispose();
     });
 
     it('should return 4 with cache miss', async function () {
@@ -107,13 +95,11 @@ describe('Consumer', function () {
       c.accept(4);
       await sleep(2000);
       c.accept(4);
-      let mean = c.mean();
-      assert.equal(mean, 4);
+      assert.equal(c.mean(), 4);
       await sleep(2500);
-      mean = c.mean();
-      assert.equal(mean, 4);
+      assert.equal(c.mean(), 4);
       assert.equal(spy.callCount, 2);
-      c.stopGarbageCollector();
+      c.dispose();
     });
   });
 });
