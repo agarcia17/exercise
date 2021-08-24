@@ -1,0 +1,19 @@
+{
+  "name": "included",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "mocha index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^3.4.1",
+    "mocha": "^9.1.0",
+    "prettier": "^2.3.2",
+    "sinon": "^11.1.2"
+  }
+}
